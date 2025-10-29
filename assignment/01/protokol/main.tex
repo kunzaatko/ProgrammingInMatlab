@@ -1,0 +1,460 @@
+\RequirePackage{luatex85}
+\documentclass[czech]{article}
+\usepackage[czech]{babel}
+
+\usepackage{amsmath,amssymb,mathtools,mathrsfs}
+\usepackage{indentfirst}
+\usepackage[unicode, bookmarks]{hyperref}
+\usepackage{enumitem}
+
+\usepackage[a4paper,left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm]{geometry}
+\newcommand\C{\ensuremath{\mathbb{C}}}
+\newcommand\R{\ensuremath{\mathbb{R}}}
+\newcommand\Z{\ensuremath{\mathbb{Z}}}
+
+\usepackage{physics}
+\usepackage{multicol}
+
+\usepackage{nicematrix}
+\NiceMatrixOptions{nullify-dots}
+\setcounter{MaxMatrixCols}{20}
+
+\let\narrowtilde\tilde
+\renewcommand\tilde\widetilde
+
+\let\narrowhat\hat
+\renewcommand\hat\widehat
+
+\title{Singular Value Decomposition}
+\author{Martin Kunz}
+\begin{document}
+\maketitle
+Singular Value Decomposition je algoritmus rozkladu matice $A \in \C^{m \times n}$ na diagonální obdélníkovou matici $D \in \C^{m \times n}$ a ortogonální matice $U \in \C^{m\times m}$, $V \in \C^{n \times n}$, tak že platí
+\[
+	A = U\cdot D\cdot V^{\top}.
+\]
+
+
+Pro \emph{čtvercovou symetrickou} matici $S \in \C^{n \times n}$ je diagonalizace na $Q \in \C^{n \times n}$ ortogonální a $\Sigma \in \C^{n \times n}$ diagonální, tak že platí
+\[
+	S = Q\cdot \Sigma \cdot Q^{\top}
+\]
+případem Singular Value Decomposition s maticemi $Q = U = V$, $\Sigma = D$ a $S = A$.
+
+
+Ukažme si jak diagonalizovat čtvercovou symetrickou matici.
+\section{Jacobiho diagonalizační algoritmus}
+Jacobiho diagonalizační algoritmus je iterativní metoda na nalezení matic $Q$ a $\Sigma$. Z lineární algebry je jasné, že $Q$ je matice jejíž sloupce tvoří vlastní vektory $S$ a $\Sigma$ je diagonální matice příslušných vlastních čísel. Algoritmus spočívá v nalezení rotací $R_{(j,k)}$, $j \neq k$, přikládaných k matici $S$, takových, že vynulují mimodiagonální prvek $S_{jk}$ matice S. Tedy
+\begin{equation}
+	\label{eq:tvar_iterace_prvku_sjk}
+	\tilde{S} = R_{(j,k)}^{\top}\cdot S \cdot R_{(j,k)},
+\end{equation}
+kde $ \tilde{S}_{jk} = 0$. Pomocí transpozice a toho, že $S$ je symetrická, tedy $S^{\top}= S$ dostáváme
+\[
+	\left(  \tilde{S} \right)^{\top} =
+	\left( R_{(j,k)}^{\top}\cdot S \cdot R_{(j,k)} \right)^{\top} =
+	R_{(j,k)}^{\top}\cdot S^{\top} \cdot \left(R_{(j,k)}^{\top}\right)^{\top} =
+	R_{(j,k)}^{\top} \cdot S \cdot R_{(j,k)} = \tilde{S},
+\]
+což znamená, že $\tilde{S}$ je také symetrická a tedy $\tilde{S}_{jk} = \tilde{S}_{kj} = 0$ a povedlo se nám vynulovat oba dva prvky s indexy $k$ a $j$.
+
+
+Díky ortogonalitě rotační matice $R_{(j,k)}$ platí $R_{(j,k)}^{-1} = R_{(j,k)}^{\top}$, tedy můžeme dostat matici $S$ jako
+\[
+	S = R_{(j,k)}\cdot\tilde{S}\cdot R_{(j,k)}^{\top}.
+\]
+
+
+Podařilo se nám tedy vyjádřit matici $S$ pomocí matice $\tilde{S}$, o které víme, že má nulový prvek $\tilde{S}_{jk}$ a $\tilde{S}_{kj}$. Stejným způsobem se nám podaří vynulovat i ostatní mimodiagonální prvky. Přikládáním Jakobiho rotačních matic pro jednotlivé mimodiagonální prvky sestrojíme rotační matici $\boldsymbol{R}$ jako
+\[
+	\boldsymbol{R} = \prod_{
+		\substack{ (j,k) \in \hat{n} \times \hat{n} \\ j < k}
+	}   R_{(j,k)}.
+\]
+Pak platí
+\[
+	S = \boldsymbol{R}\cdot \Sigma \cdot \boldsymbol{R}^{\top},
+\]
+kde $\Sigma$ je diagonální díky tomu, že jsme mimodiagonální prvky rotacemi vynulovaly.
+
+\subsection{Tvar rotační matice \texorpdfstring{$R_{(j,k)}$}{Rjk}}%
+\label{sub:tvar_rotacni_matice_Rjk}
+
+K aplikaci této iterativní metody musí mít rotační matice $R_{(j,k)}$ určité vlastnosti plynoucí z požadavků na matici v jednotlivých krocích iterace. Například s obecnou maticí $X$ není zaručeno, že pokud $\tilde{S}_{jk} = 0$ bude i $\left(X \cdot \tilde{S} \cdot X^{\top} \right)_{jk} = 0$. To by ale takový postup znemožnilo. Z takových požadavků bude plynout obecný tvar rotační matice. Dále pomocí tohoto tvaru bude třeba určit konkrétní tvar pro dané indexy $j$ a $k$, který bude třeba dopočítat na základě konkrétní matice, kterou se snažíme rozkládat v dané iteraci.
+
+\subsubsection{Obecný tvar rotační matice}%
+\label{ssub:obecny_tvar_rotacni_matice}
+
+Na rotační matici $R_{(j,k)}$ klademe požadavek, aby zanechala prvky mimo řádky $j$, $k$ a sloupce $j$, $k$ matice $S$ nezměněné, což požadujeme abychom v dalších iteracích zanechali prvky již vynulované. To sice není dostačující podmínkou pro zachování nulových prvků z předchozích iterací (viz \ref{ssub:radky_a_sloupce_j_a_k_pri_iteraci_i_r}), ale je to jistě podmínka nutná. Z této podmínky plyne tvar matice $R_{(j,k)}$
+\[
+	R_{(j,k)} =
+	\begin{pNiceMatrix}
+		 & 1      & \Cdots &   &        &        &        &        &        &        &        &        &        &   &        & 0      & \\
+		 &        & \Ddots &   &        &        &        &        &        &        &        &        &        &   &        &        & \\
+		 &        &        & 1 &        &        &        &        &        &        &        &        &        &   &        & \Vdots & \\
+		 &        &        &   & \Ddots &        &        &        &        &        &        &        &        &   &        & \Vdots & \\
+		 &        &        &   &        & r_{jj} &        & \Cdots & \Cdots &        &        & r_{jk} &        &   &        &        & \\
+		 &        &        &   &        &        & \Ddots &        &        &        &        &        &        &   &        &          \\
+		 &        &        &   &        &        &        & 1      &        &        &        &        &        &   &        &        & \\
+		 & \Vdots &        &   &        & \Vdots &        &        & \Ddots &        &        & \Vdots &        &   &        &        & \\
+		 &        &        &   &        &        &        &        &        & 1      &        &        &        &   &        &        & \\
+		 &        &        &   &        &        &        &        &        &        & \Ddots &        &        &   &        &        & \\
+		 &        &        &   &        & r_{kj} &        & \Cdots &        & \Cdots &        & r_{kk} &        &   &        &        & \\
+		 &        &        &   &        &        &        &        &        &        &        &        & \Ddots &   &        &        & \\
+		 &        &        &   &        &        &        &        &        &        &        &        &        & 1 &        &        & \\
+		 &        &        &   &        &        &        &        &        &        &        &        &        &   & \Ddots &        & \\
+		 & 0      & \Cdots &   &        &        &        &        &        &        &        &        &        &   &        & 1      & \\
+	\end{pNiceMatrix},
+\]
+která toto zajišťuje, jak je možné nahlédnout z tvaru $\left(R_{(j,k)}^{\top}\cdot S \cdot R_{(j,k)}\right)_{il}$ pro $(i,l) \in \left\{ (i,l) \mid i,l \in \hat{n}\setminus \left\{ j,k \right\} \right\} $, kde využijeme toho, že pro všechny indexy mimo $j$ a $k$, mají řádky a sloupce $R_{(j,k)}$ nenulový pouze diagonální člen a ten je neutrálním prvkem při násobení
+
+\[
+	\begin{split}
+		\left(\tilde{S}\right)_{il} &= \left( R_{(j,k)}^{\top} \cdot S \cdot R_{(j,k)} \right)_{il} = \sum_{m = 1}^{n} \left( R_{(j,k)} \right)_{mi} \sum_{t = 1}^{n} S_{mt} \left( R_{(j,k)} \right)_{tl} = \\
+		&= \sum_{m=1}^{n} \left( R_{(j,k)} \right)_{im} S_{ml} \left( R_{(j,k)} \right)_{ll} = \left( R_{(j,k)} \right)_{ii}S_{il}\left( R_{(j,k)} \right)_{ll} = S_{il}
+		.\end{split}
+\]
+Také chceme, aby
+\begin{equation}
+	\label{eq:pozadavek_specialni_linearity}
+	\left|R_{(j,k)}^{\top}\cdot R_{(j,k)}\right| = 1,
+\end{equation}
+protože si nepřejeme, aby matice $S$ při přikládání rotačních matic měnila normu. Ortogonalitu
+\[
+	R_{(j,k)}^{\top}\cdot R_{(j,k)} = \mathbb{D},\quad \text{kde } \mathbb{D} \text{ je diagonální},
+\]
+pak požadujeme kvůli požadavku ortogonality výsledné rotační matice $\boldsymbol{R}$.
+
+Dohromady jako postačující (nikoliv nutná) podmínka pro tyto požadavky poslouží ortonormalita matice $R_{(j,k)}$ neboli $\mathbb{D} = \mathbb{I}$, jelikož
+\begin{enumerate}[label=(\alph*)]
+	\item normovanost
+	      \[
+		      \mathbb{D} \equiv \mathbb{I} \implies \left| R_{(j,k)}^{\top}\cdot R_{(j,k)} \right| = \left| \mathbb{D} \right| = \left| \mathbb{I} \right|  = 1
+	      \]
+	\item ortogonalita
+	      \[
+		      \mathbb{D} \equiv \mathbb{I} \implies R_{(j,k)}^{\top}\cdot R_{(j,k)} = \mathbb{D} = \mathbb{I} \text{ a } \mathbb{I} \text{ je diagonální},
+	      \]
+\end{enumerate}
+což také znamená, že matice $\boldsymbol{R}$ vzniklá jako součin ortonormálních matic $R_{(j,k)}$ bude ortonormální.
+
+Při výpočtu determinantu v \ref{eq:pozadavek_specialni_linearity} eliminací řádků a sloupců zjistíme, že podmínka je ekvivalentní
+\[
+	\left|
+	\begin{pmatrix}
+		r_{jj} & r_{jk} \\
+		r_{kj} & r_{kk} \\
+	\end{pmatrix}^{\top}
+	\cdot
+	\begin{pmatrix}
+		r_{jj} & r_{jk} \\
+		r_{kj} & r_{kk} \\
+	\end{pmatrix}
+	\right| = 1
+\]
+a díky ortonormalitě také
+\begin{equation}
+	\label{eq:podminka_ortonormality}
+	\begin{pmatrix}
+		r_{jj} & r_{jk} \\
+		r_{kj} & r_{kk} \\
+	\end{pmatrix}^{\top}
+	\cdot
+	\begin{pmatrix}
+		r_{jj} & r_{jk} \\
+		r_{kj} & r_{kk} \\
+	\end{pmatrix} =
+	\begin{pmatrix}
+		r_{jj}^2 + r_{kj}^2         & r_{jj}r_{jk} + r_{kj}r_{kk} \\
+		r_{jj}r_{jk} + r_{kj}r_{kk} & r_{jk}^2 + r_{kk}^2         \\
+	\end{pmatrix} =
+	\begin{pmatrix}
+		1 & 0 \\
+		0 & 1 \\
+	\end{pmatrix}.
+\end{equation}
+Z diagonálních prvků rovnic \ref{eq:podminka_ortonormality} dostáváme, že $(r_{jj},r_{kj})$ a $(r_{kk}, r_{jk})$ leží na jednotkové kružnici. Pro nějaké $\alpha \in \R$ a $\beta \in \R$ je tedy splněno
+\[
+	(r_{jj},r_{kj}) = (\cos(\alpha), \sin(\alpha)), \quad (r_{kk}, r_{jk}) = (\cos(\beta), \sin(\beta)),
+\]
+což vede na tvar
+\begin{equation}
+	\label{eq:podminka_diagonalnich_prvku}
+	\begin{pmatrix}
+		r_{jj} & r_{jk} \\
+		r_{kj} & r_{kk} \\
+	\end{pmatrix}  =
+	\begin{pmatrix}
+		\cos(\alpha) & \sin(\beta) \\
+		\sin(\alpha) & \cos(\beta) \\
+	\end{pmatrix}.
+\end{equation}
+
+Z mimodiagonálních prvků rovnic \ref{eq:podminka_ortonormality} dostáváme jednu nezávislou rovnici, která po dosazení dá
+\begin{align*}
+	\cos(\alpha)\sin(\beta) +\cos(\beta)\sin(\alpha) & = 0                                                               \\
+	                                                 & \implies \sin(\alpha + \beta) = 0                                 \\
+	                                                 & \implies \alpha + \beta \in \left\{ k \pi \mid k \in \Z \right\}.
+\end{align*}
+Protože budeme $\alpha$ a $\beta$ dosazovat zpět do goniometrických funkcí, tedy funkcí $2\pi$-periodických, můžeme se omezit pouze na
+\[
+	\alpha + \beta \in \left\{ 0,\pi \right\} .
+\]
+
+% TODO: Why does the nopagebreak not work? <26-10-21, kunzaatko> %
+Tedy možnosti jsou s využitím parit funkcí $\sin$ a $\cos$ a vztahů $\sin(\alpha + \pi) = -\sin(\alpha)$ a $\cos(\alpha + \pi) = -\cos(\alpha)$
+\nopagebreak
+\begin{multicols}{2}
+	\begin{align}
+		\begin{split}
+			\label{def:tvar rotace 1}
+			\alpha + \beta            & = 0       \\
+			\beta                     & = -\alpha \\
+			\tilde{R}_{(j,k)}^{(1)}(\alpha) \coloneqq
+			\begin{pmatrix}
+				r_{jj} & r_{jk} \\
+				r_{kj} & r_{kk} \\
+			\end{pmatrix} & =
+			\begin{pmatrix}
+				\cos(\alpha) & -\sin(\alpha) \\
+				\sin(\alpha) & \cos(\alpha)
+			\end{pmatrix}
+		\end{split}
+	\end{align}\vfill\null\columnbreak
+	\begin{align}
+		\begin{split}
+			\label{def:tvar rotace 2}
+			\alpha + \beta & = \pi \\
+			\beta &= -\alpha + \pi \\
+			\tilde{R}_{(j,k)}^{(2)}(\alpha) \coloneqq
+			\begin{pmatrix}
+				r_{jj} & r_{jk} \\
+				r_{kj} & r_{kk} \\
+			\end{pmatrix} & =
+			\begin{pmatrix}
+				\cos(\alpha) & \sin(\alpha)  \\
+				\sin(\alpha) & -\cos(\alpha)
+			\end{pmatrix}
+			.\end{split}
+	\end{align}\vfill\null
+\end{multicols}
+
+Tato dvě řešení na sebe nejsou obecně lineárně převeditelná, neboli neexistuje $\theta(\varphi)$ lineární tak, že $\forall \varphi$ platí $\tilde{R}_{(j,k)}^{(1)}(\theta) = \tilde{R}_{(j,k)}^{(2)}(\varphi)$.
+Zjišťujeme ale, že stačí pouze jeden tvar k úplnému zahrnutí všech rotací. Neboli $\forall \varphi \exists \theta$ pro které $\tilde{R}_{(j,k)}^{(1)}(\theta) = \tilde{R}_{(j,k)}^{(2)}(\varphi)$, kde ale zobrazení takto konstruované zřejmě není lineární.
+Dále proto budeme pracovat pouze s tvarem \ref{def:tvar rotace 1} a finální obecná poboda matice $R_{(j,k)}$ je
+\[
+	R_{(j,k)}(\theta) =
+	\begin{pNiceMatrix}
+		 & 1      & \Cdots &   &        &              &        &        &        &        &        &               &        &   &        & 0      & \\
+		 &        & \Ddots &   &        &              &        &        &        &        &        &               &        &   &        &        & \\
+		 &        &        & 1 &        &              &        &        &        &        &        &               &        &   &        & \Vdots & \\
+		 &        &        &   & \Ddots &              &        &        &        &        &        &               &        &   &        & \Vdots & \\
+		 &        &        &   &        & \cos(\theta) &        & \Cdots & \Cdots &        &        & -\sin(\theta) &        &   &        &        & \\
+		 &        &        &   &        &              & \Ddots &        &        &        &        &               &        &   &        &          \\
+		 &        &        &   &        &              &        & 1      &        &        &        &               &        &   &        &        & \\
+		 & \Vdots &        &   &        & \Vdots       &        &        & \Ddots &        &        & \Vdots        &        &   &        &        & \\
+		 &        &        &   &        &              &        &        &        & 1      &        &               &        &   &        &        & \\
+		 &        &        &   &        &              &        &        &        &        & \Ddots &               &        &   &        &        & \\
+		 &        &        &   &        & \sin(\theta) &        & \Cdots &        & \Cdots &        & \cos(\theta)  &        &   &        &        & \\
+		 &        &        &   &        &              &        &        &        &        &        &               & \Ddots &   &        &        & \\
+		 &        &        &   &        &              &        &        &        &        &        &               &        & 1 &        &        & \\
+		 &        &        &   &        &              &        &        &        &        &        &               &        &   & \Ddots &        & \\
+		 & 0      & \Cdots &   &        &              &        &        &        &        &        &               &        &   &        & 1      & \\
+	\end{pNiceMatrix}.
+\]
+
+\subsubsection{Určení úhlu rotace}%
+\label{ssub:urceni_uhlu_rotace}
+
+Úhel rotace v rotační matici $R_{(j,k)}(\theta)$ určíme z podmínky
+\begin{equation}
+	\label{eq:podminka_pro_theta}
+	\left(R_{(j,k)}(\theta)^{\top}\cdot S \cdot R_{(j,k)}(\theta)\right)_{jk} = 0.
+\end{equation}
+
+Rozepíšeme-li maticové násobení v \ref{eq:podminka_pro_theta} jako sumu
+\[
+	% TODO: It would make more sense to calculate S_{jk} straight forward and not by its traspose <26-10-21, kunzaatko> %
+	\begin{split}
+		\tilde{S}_{jk} = \tilde{S}_{kj} &= \sum_{i=1}^{n}  R_{(j,k)}(\theta)_{ji} \left( S\cdot R_{(j,k)}(\theta)^{\top} \right)_{ik} = \\
+		&= \sum_{i=1}^{n}  R_{(j,k)}(\theta)_{ji} \sum_{l=1}^{n} S_{il} \left(R_{(j,k)}(\theta)^{\top}\right)_{lk} = \\
+		&= \sum_{i=1}^{n}  R_{(j,k)}(\theta)_{ji} \sum_{l=1}^{n} S_{il} R_{(j,k)}(\theta)_{kl} ,
+	\end{split}
+\]
+a nyní si uvědomíme, že kromě prvků s indexy v $\left\{ (i,i) \mid i \in \hat{n} \right\} \cup \left\{ (j,k),(k,j) \right\} $ jsou prvky matice $R_{(j,k)}$ nulové, tedy vypadnou i členy sumy a dostaneme s využitím symetrie matice $S$, tj. $S_{jk} = S_{kj}$
+\begin{equation}
+	\label{eq:explicitni_dopocteni_uhlu}
+	\begin{split}
+		\tilde{S}_{jk} &= \sum_{i=1}^{n}  R_{(j,k)}(\theta)_{ji} \sum_{l=1}^{n} S_{il} R_{(j,k)}(\theta)_{kl}  = \\
+		&= \sum_{i=1}^{n}  R_{(j,k)}(\theta)_{ji} \left(S_{ij}R_{(j,k)}(\theta)_{kj} + S_{ik}R_{(j,k)}(\theta)_{kk} \right) = \\
+		&= R_{(j,k)}(\theta)_{jj} \left(S_{jj}R_{(j,k)}(\theta)_{kj} + S_{jk}R_{(j,k)}(\theta)_{kk} \right) +
+		R_{(j,k)}(\theta)_{jk} \left(S_{kj}R_{(j,k)}(\theta)_{kj} + S_{kk}R_{(j,k)}(\theta)_{kk} \right) =  \\
+		&= \cos(\theta) \left( S_{jj}\sin(\theta) + S_{jk}\cos(\theta) \right) -
+		\sin(\theta) \left(S_{kj}\sin(\theta) + S_{kk}\cos(\theta) \right) = \\
+		&= \left(\cos^2(\theta) - \sin^2(\theta)\right)S_{jk} - \sin(\theta)\cos(\theta)\left( S_{jj} + S_{kk}\right) = \\
+		&= \cos(2\theta)S_{jk} - \frac{1}{2}\sin(2\theta)\left( S_{jj} + S_{kk}\right)
+		.\end{split}
+\end{equation}
+Dosadíme nyní tento tvar zpět do podmínky \ref{eq:podminka_pro_theta} pro úhel $\theta$
+\begin{align*}
+	0 \stackrel{!}{=} \tilde{S}_{jk} = \cos(2\theta)S_{jk} - \frac{1}{2}\sin(2\theta)\left( S_{jj} + S_{kk}\right) \\
+	\frac{2S_{jk}}{S_{jj} + S_{kk}} = \frac{\sin(2\theta)}{\cos(2\theta)} = \tan(2\theta)                          \\
+	\frac{1}{2}\arctan(\frac{2S_{jk}}{S_{jj} + S_{kk}}) = \theta.
+\end{align*}
+
+Jelikož funkce $\frac{1}{2}\arctan: \R \to (-\frac{\pi}{2},\frac{\pi}{2})$ je bijekcí, umíme pro každý $\frac{2S_{jk}}{S_{jj} + S_{kk}} \in \R$ určit $\theta$. Dokonce se nám podařilo odhalit, že stačí pouze rotace o úhly s rozsahem $\pi$ nikoliv $2\pi$, abychom zahrnuli, všechny možnosti $\frac{2S_{jk}}{S_{jj} + S_{kk}}$. To je způsobeno požadavkem na symetrii matice $S$, což se dá nahlédnout z \ref{eq:explicitni_dopocteni_uhlu}, kde, pokud bychom jí nepožadovali, by v argumentu $\arctan$ vystupovali oba prvky $S_{jk}$ a $S_{kj}$ a zlomek před výrazem by se neobjevil.
+
+
+\subsection{Iterace Jakobiho algoritmu}%
+\label{sec:iterace_jakobiho_algoritmu}
+Budeme provádět $m$ iterací. Označíme $r$-tou iteraci jako
+\[
+	\mathscr{I}_{r}: \tilde{S}^{(r-1)} \mapsto \tilde{S}^{(r)}.
+\]
+Tvar $r$-té iterace příslušící $jk$-tému prvku matice $\tilde{S}^{(r-1)}$ při označení $R_{(r)}\coloneqq R_{(j,k)} = R_{(j,k)}\left(  \tilde{S}^{(r-1)}_{jk} \right)$ je určený rovnicí \ref{eq:tvar_iterace_prvku_sjk} jako
+\[
+	\tilde{S}^{(r)} = R_{(r)}^{\top}\cdot \tilde{S}^{(r-1)} \cdot R_{(r)}.
+\]
+Tvarem rotační matice $R_{(r)}$ jsme sice zajistili, že se při $r$-té iteraci nebudou měnit prvky $\left(\tilde{S}^{(r-1)}\right)_{il}$ pro $(i,l) \in \left\{ (i,l) \mid i,l \in \hat{n} \setminus  \left\{ j,k \right\}  \right\} $. Neboli
+\[
+	\forall(i,l) \in \left\{ (i,l) \mid i,l \in \hat{n} \setminus  \left\{ j,k \right\}  \right\}: \quad \left( \tilde{S}^{(r-1)} \right)_{il} = \left( \tilde{S}^{(r)} \right)_{il}
+	.\]
+To co ale zajištěno není, je změna prvků $\tilde{S}_{ji}, \tilde{S}_{ij}$ pro $i \in \hat{n}$ a $\tilde{S}_{kl}, \tilde{S}_{lk}$ pro $l \in \hat{n}$,
+neboli řádky $j$, $k$ a sloupce $j$,  $k$ se měnit budou. Podívejme se na tvary řádků a sloupců které se změní při iteraci $\mathscr{I}_{r}$.
+
+\subsubsection{Řádky a sloupce \texorpdfstring{$j$}{j} a \texorpdfstring{$k$}{k} při iteraci \texorpdfstring{$\mathscr{I}_{r}$}{Ir}}%
+\label{ssub:radky_a_sloupce_j_a_k_pri_iteraci_i_r}
+Z hodnoty prvku $\tilde{S}^{(r-1)}_{jk}$ jsme určili tvar rotační matice, tak že jsme požadovli, aby $\tilde{S}^{(r)}_{jk} = 0$. Navíc tvarem rotační matice jsme zajistili, že budou prvky, ve kterých nevystupuje ani jeden z indexů $j$ a $k$ nezměněné. Nyní zkoumáme $\tilde{S}^{(r)}_{il}$ pro všechny ostatní indexy, tedy
+\[
+	(i,l) \in \left\{ (i,l) \mid i \in \left\{ j,k \right\}, l \in \hat{n} \setminus \left\{ j,k \right\}   \right\} \cup \left\{ (i,l) \mid i \in \hat{n} \setminus \left\{ j,k \right\}, l \in \left\{ j,k \right\}   \right\} \cup \left\{ (j,j), (k,k) \right\} .
+\]
+Bude výhodné vyčlenit zvlášť indexy $(i,i) \in \left\{ (j,j), (k,k) \right\} $, které nejsou nutné vyčíslovat, protože nulujeme pouze mimodiagonální prvky a tedy nám nebude vadit, když se při iteraci $\mathscr{I}_{r}$ tyto prvky změní. Přesto je vyčíslíme
+\[
+	\begin{split}
+		\left( \tilde{S}^{(r)} \right)_{ii} &= \left( R_{(r)}^{\top} \cdot \tilde{S}^{(r-1)} \cdot R_{(r)} \right)_{ii} = \\
+		&= \sum_{m=1}^{n} \left( R_{(r)} \right)_{mi} \sum_{t = 1}^{n} (\tilde{S}^{(r-1)})_{mt} \left( R_{(r)} \right)_{ti} = \left(\left( R_{(r)} \right)_{ii}\right)^2 \left( \tilde{S}^{(r-1)} \right)_{ii} = \cos^2(\theta)\left( \tilde{S}^{(r-1)} \right)_{ii}.
+	\end{split}
+\]
+Zjistili jsme tak že se při provádění iterací diagonální prvky zmenšují.
+
+Nyní pro zbývající prvky $(i,l) \in \left\{ (i,l) \in \hat{n} \times \hat{n} \mid i \in \left\{ j,k \right\} \dot{\lor}\, l \in \left\{ j,k \right\}   \right\} $, kde $\dot{\lor}$ značí disjunktní $\lor$, máme s využitím Einsteinovy sumační konvence a bez újmy na obecnosti $i \in \{j,k\}$ díky symetrii
+\[
+	\begin{split}
+		\left( \tilde{S}^{(r)} \right)_{il} &= \left(R_{(r)}\right)_{mi}\left( R_{(r)} \right)_{tl} \left( \tilde{S}^{(r-1)} \right)_{mt} = \\
+		&= \left( \left( R_{(r)} \right)_{ji} + \left( R_{(r)} \right)_{ki}  \right) \left( R_{(r)} \right)_{ll}\left( \tilde{S}^{(r-1)} \right)_{mt}\delta_{mi}\delta_{tl} = \\
+		&= \left( \left( R_{(r)} \right)_{ji} + \left( R_{(r)} \right)_{ki}  \right) \left( \tilde{S}^{(r-1)} \right)_{il} = \\
+		&=
+		\begin{cases}
+			\left(\cos(\theta) + \sin(\theta)\right)\left( \tilde{S}^{(r-1)} \right)_{jl}
+			 & (i,l) \in \left\{ (j,l) \mid l \in \hat{n} \setminus \left\{ j,k \right\} \right\} \cup \left\{ (i,j) \mid i \in \hat{n} \setminus \left\{ j,k \right\}  \right\} \\
+			\left(\cos(\theta) - \sin(\theta)\right)\left( \tilde{S}^{(r-1)} \right)_{kl}
+			 & (i,l) \in \left\{ (k,l) \mid l \in \hat{n} \setminus \left\{ j,k \right\} \right\} \cup \left\{ (i,k) \mid i \in \hat{n} \setminus \left\{ j,k \right\}  \right\}
+		\end{cases}
+	\end{split}
+\]
+Pomocí symetrie $\left( \tilde{S}^{(r-1)} \right)_{il} = \left( \tilde{S}^{(r-1)} \right)_{li} $ vidíme, že již vynulované prvky zůstávají nulové, protože mezi $\left( \tilde{S}^{(r-1)} \right)_{il} $ a $\left( \tilde{S}^{(r)} \right)_{il}$ je lineární závislost. Což tedy znamená, že
+\[
+	\left( \tilde{S}^{(r-1)} \right)_{il} = 0 \implies \left( \tilde{S}^{(r)} \right)_{il} = 0.
+\]
+
+\subsection{Konečná podoba Jakobiho algoritmu}%
+\label{sub:konecna_podoba_jakobiho_algoritmu}
+
+Nakonec dostáváme podobu Jakobiho algoritmu. Ve shrnutí:
+\begin{enumerate}[label=(\roman*)]
+	\item Máme \emph{symetrickou čtvercovou} matici $S \in \R^{n\times n}$ jako vstup algoritmu
+	\item Provedeme iterace $\mathscr{I}_{r}$ pro $r \in \left\{1,\ldots,\triangle(n-1)\right\}$, příslušející prvkům $(j,k) \in \left\{ (j,k) \in \hat{n} \times \hat{n} \mid j \in \hat{n} \setminus \{1\}, j > k \right\} $, kde $\triangle(n-1)$ je $(n-1)$-ní trojúhelníkové číslo, tedy právě počet prvků pod diagonálnou.
+	      \begin{enumerate}[label=(\alph*)]
+		      \item
+		            \[
+			            \tilde{S}^{(0)} = S
+		            \]
+		      \item
+		            \[
+			            \theta^{(r)} = \theta_{(j,k)} = \frac{1}{2}\arctan\left( \frac{2\left(\tilde{S}^{(r-1)}\right)_{jk}}{\left(\tilde{S}^{(r-1)}\right)_{jj} + \left(\tilde{S}^{(r-1)}\right)_{kk}} \right)
+		            \]
+		      \item
+		            \[
+			            R_{(r)} =
+			            \begin{pNiceMatrix}
+				             & 1      & \Cdots &   &        &                    &        &        &        &        &        &                     &        &   &        & 0      & \\
+				             &        & \Ddots &   &        &                    &        &        &        &        &        &                     &        &   &        &        & \\
+				             &        &        & 1 &        &                    &        &        &        &        &        &                     &        &   &        & \Vdots & \\
+				             &        &        &   & \Ddots &                    &        &        &        &        &        &                     &        &   &        & \Vdots & \\
+				             &        &        &   &        & \cos(\theta^{(r)}) &        & \Cdots & \Cdots &        &        & -\sin(\theta^{(r)}) &        &   &        &        & \\
+				             &        &        &   &        &                    & \Ddots &        &        &        &        &                     &        &   &        &          \\
+				             &        &        &   &        &                    &        & 1      &        &        &        &                     &        &   &        &        & \\
+				             & \Vdots &        &   &        & \Vdots             &        &        & \Ddots &        &        & \Vdots              &        &   &        &        & \\
+				             &        &        &   &        &                    &        &        &        & 1      &        &                     &        &   &        &        & \\
+				             &        &        &   &        &                    &        &        &        &        & \Ddots &                     &        &   &        &        & \\
+				             &        &        &   &        & \sin(\theta^{(r)}) &        & \Cdots &        & \Cdots &        & \cos(\theta^{(r)})  &        &   &        &        & \\
+				             &        &        &   &        &                    &        &        &        &        &        &                     & \Ddots &   &        &        & \\
+				             &        &        &   &        &                    &        &        &        &        &        &                     &        & 1 &        &        & \\
+				             &        &        &   &        &                    &        &        &        &        &        &                     &        &   & \Ddots &        & \\
+				             & 0      & \Cdots &   &        &                    &        &        &        &        &        &                     &        &   &        & 1      & \\
+			            \end{pNiceMatrix}.
+		            \]
+		      \item
+		            \[
+			            \mathscr{I}_{r}: \tilde{S}^{(r-1)} \mapsto \tilde{S}^{(r)} = R_{(r)}^{\top}\cdot \tilde{S}^{(r-1)} \cdot R_{(r)}.
+		            \]
+	      \end{enumerate}
+	\item Dostáváme matici $\Sigma$ diagonální a matici $Q$ ortonormální jako
+	      \begin{align*}
+		      \Sigma & = S^{\left(\triangle(n-1)\right)}                        \\
+		      Q      & = \boldsymbol{R} = \prod_{r=1}^{\triangle(n-1)} R_{(r)},
+	      \end{align*}
+	      splňující
+	      \[
+		      S = Q\cdot\Sigma\cdot Q^{\top}
+		      .\]
+\end{enumerate}
+
+\section{Singular Value Decomposition}%
+\label{sec:singular_value_decomposition}
+Nyní už je ale velmi jednoduché zobecnit Jakobiho algoritmus na Singular Value Decomposition. Jako vstup máme matici $A \in \R^{m \times n}$. Do Jakobiho algoritmu potřebujeme čtvercovou symetrickou matici. Tu můžeme získat jako
+\[
+	S_{1} = A\cdot A^{\top} \quad \text{ nebo } \quad S_{2} = A^{\top}\cdot A.
+\]
+Chceme dělat rozklad matice $A$ na matici $D$ diagonální a matice $U$ a $V$ ortogonální, tak aby platilo
+\[
+	A = U\cdot D\cdot V^{\top}.
+\]
+Podívejme se, co to znamená pro $S_{1}$ a $S_{2}$ s využitím $D = D^{\top}$ díky diagonalitě
+\begin{align*}
+	S_{1} & = A\cdot A^{\top} = U\cdot D\cdot V^{\top}\cdot\left( U\cdot D\cdot V^{\top} \right)^{\top} = U\cdot D\cdot V^{\top}\cdot V\cdot D\cdot U^{\top} = U \cdot D^2 \cdot U^{\top}   \\
+	S_{2} & = A^{\top}\cdot A = \left( U\cdot D\cdot V^{\top} \right)^{\top} \cdot U\cdot D\cdot V^{\top} = V\cdot D\cdot U^{\top}\cdot U\cdot D\cdot V^{\top} = V \cdot D^2 \cdot V^{\top}
+	.\end{align*}
+
+To tedy znamená, že $U$ můžeme získat diagonalizací na matici $S_{1}$ a $V$ diagonalizací na matici $S_{2}$. $D$ potom odmocněním prvků na diagonále $\Sigma$ buď z matice $S_1$ nebo $S_2$.
+
+
+\subsection{Konečná podoba Singular Value Decomposition}%
+\label{sub:konecna_podoba_singular_value_decomposition}
+Podívejme se ve shrnutí, jak bude Singular Value Decomposition fungovat.
+\begin{enumerate}[label=(\roman*)]
+	\item Máme matici $A \in \R^{m\times n}$ jako vstup algoritmu
+	\item Uděláme proces diagonalizace na maticích $S_1$ a $S_2$ pomocí Jakobiho algoritmu
+	      \begin{enumerate}[label=(\alph*)]
+		      \item
+		            \[
+			            S_1 = A\cdot A^{\top} = Q_{1}\cdot\Sigma\cdot Q_{1}^{\top}
+		            \]
+		      \item
+		            \[
+			            S_2 = A^{\top} \cdot A = Q_{2}\cdot\Sigma\cdot Q_{2}^{\top}
+		            \]
+		      \item Dostáváme matici $D$ diagonální a matice $U$, $V$ ortonormální jako
+		            \begin{align*}
+			            D & = \sqrt{\Sigma} \\
+			            U & = Q_1           \\
+			            V & = Q_2           \\
+		            \end{align*}
+		            splňující
+		            \[
+			            A = U\cdot D\cdot V^{\top}.
+		            \]
+	      \end{enumerate}
+\end{enumerate}
+
+\end{document}
