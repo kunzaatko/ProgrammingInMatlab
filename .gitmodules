@@ -1,0 +1,3 @@
+[submodule "assignment/01"]
+	path = assignment/01
+	url = git@gitlab.com:kunzaatko/singular-value-decomposition.git
