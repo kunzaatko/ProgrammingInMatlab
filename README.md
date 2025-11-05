@@ -7,6 +7,8 @@ This repository contains solutions to assignments for the course "Programování
 ### Assignment 1: Singular Value Decomposition
 Implementation of Singular Value Decomposition algorithms using the Jacobi diagonalization method.
 
+A PDF protocol for SVD in Czech is available [here](https://github.com/kunzaatko/ProgrammingInMatlab/releases/latest/download/SVD_protokol.pdf).
+
 ### Assignment 2: Flag Animations
 Creation of stationary and animated flags with sinusoidal displacements.
 
