@@ -1,0 +1,30 @@
+\RequirePackage{luatex85}
+\documentclass[czech]{article}
+\usepackage[czech]{babel}
+
+\usepackage{amsmath,amssymb,mathtools,mathrsfs}
+\usepackage{indentfirst}
+\usepackage[unicode, bookmarks]{hyperref}
+\usepackage{enumitem}
+
+\usepackage[a4paper,left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm]{geometry}
+\newcommand\C{\ensuremath{\mathbb{C}}}
+\newcommand\R{\ensuremath{\mathbb{R}}}
+\newcommand\Z{\ensuremath{\mathbb{Z}}}
+
+\usepackage{physics}
+\usepackage{multicol}
+
+\usepackage{nicematrix}
+\NiceMatrixOptions{nullify-dots}
+\setcounter{MaxMatrixCols}{20}
+
+\let\narrowtilde\tilde
+\renewcommand\tilde\widetilde
+
+\let\narrowhat\hat
+\renewcommand\hat\widehat
+
+\title{Singular Value Decomposition}
+\author{Martin Kunz}
+\begin{document}
